@@ -10,9 +10,9 @@ class Settings(BaseSettings):
 
 @property
 def async_database_url(self) -> str:
-    import re
-    # Handles: postgres://, postgresql://, postgresql+psycopg2://, etc.
-    return re.sub(r'^postgres(ql)?(\+\w+)?://', 'postgresql+asyncpg://', self.DATABASE_URL)
+    # Take everything after :// and rebuild with asyncpg
+    rest = self.DATABASE_URL.split("://", 1)[1]
+    return "postgresql+asyncpg://" + rest
 
 
 settings = Settings()  # type: ignore[call-arg]
