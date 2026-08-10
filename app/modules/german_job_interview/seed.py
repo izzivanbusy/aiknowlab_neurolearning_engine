@@ -117,7 +117,7 @@ ITEMS_SK08 = [
                 "„Guten Tag, mein Name ___.\n"
                 "Ich ___ [Berufsbezeichnung] und arbeite seit ___\n"
                 "im Bereich ___.\n"
-                "Ich habe mich auf diese Stelle beworben, weil ___.""
+                "Ich habe mich auf diese Stelle beworben, weil ___."
             ),
             "context_variable": None,
             "evaluator_notes": (
