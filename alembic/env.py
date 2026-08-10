@@ -7,7 +7,8 @@ from app.db import models  # noqa
 
 config = context.config
 
-sync_url = settings.DATABASE_URL.replace("postgres://", "postgresql://", 1)
+import re
+sync_url = re.sub(r'^postgres(ql)?(\+\w+)?://', 'postgresql://', settings.DATABASE_URL)
 config.set_main_option("sqlalchemy.url", sync_url)
 
 if config.config_file_name is not None:
