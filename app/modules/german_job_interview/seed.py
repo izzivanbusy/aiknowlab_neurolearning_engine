@@ -149,7 +149,7 @@ ITEMS_SK08 = [
             "prompt_for_learner": (
                 "Szenario: Sie sind bei einem ersten Gespräch bei Müller & Partner.\n"
                 "Die HR-Managerin Frau Weber kommt auf Sie zu und sagt:\n"
-                "„Guten Morgen. Stellen Sie sich bitte kurz vor."\n\n"
+                "„Guten Morgen. Stellen Sie sich bitte kurz vor.\"\n\n"
                 "Hinweis: Erwähnen Sie Ihren Namen, Ihre aktuelle Position "
                 "und warum Sie hier sind."
             ),
@@ -252,7 +252,7 @@ ITEMS_SK08 = [
             "prompt_for_learner": (
                 "Sie sind auf einer Fachkonferenz für Digitalisierung.\n"
                 "In der Kaffeepause stellt sich jemand neben Sie:\n"
-                "„Hallo, ich bin Martin Brandt, CEO von Brandt Digital."\n"
+                "„Hallo, ich bin Martin Brandt, CEO von Brandt Digital.\"\n"
                 "Er schaut Sie an."
             ),
             "context_variable": "social_context=professional_networking",
