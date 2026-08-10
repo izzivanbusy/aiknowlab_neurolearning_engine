@@ -1,13 +1,16 @@
+import re
 from logging.config import fileConfig
+
 from sqlalchemy import engine_from_config, pool
+
 from alembic import context
+
 from app.config import settings
 from app.db.base import Base
-from app.db import models  # noqa
+from app.db import models  # noqa: F401
 
 config = context.config
 
-import re
 sync_url = re.sub(r'^postgres(ql)?(\+\w+)?://', 'postgresql://', settings.DATABASE_URL)
 config.set_main_option("sqlalchemy.url", sync_url)
 
@@ -17,7 +20,19 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def run_migrations_online():
+def run_migrations_offline() -> None:
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -29,4 +44,7 @@ def run_migrations_online():
             context.run_migrations()
 
 
-run_migrations_online()
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
