@@ -8,13 +8,11 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-@property
-def async_database_url(self) -> str:
-    import re
-    url = self.DATABASE_URL
-    # Handles: postgres://, postgresql://, postgresql+psycopg2://, etc.
-    url = re.sub(r'^postgres(ql)?(\+\w+)?://', 'postgresql+asyncpg://', url)
-    return url
+    @property
+    def async_database_url(self) -> str:
+        import re
+        # Handles: postgres://, postgresql://, postgresql+psycopg2://, etc.
+        return re.sub(r'^postgres(ql)?(\+\w+)?://', 'postgresql+asyncpg://', self.DATABASE_URL)
 
 
 settings = Settings()  # type: ignore[call-arg]
