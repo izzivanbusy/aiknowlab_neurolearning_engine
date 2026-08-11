@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 
 from app.api.routes import loop, session, state
-from app import ui
+from app.ui import router as ui_router
 
 app = FastAPI(
     title="NeuroLearning Engine",
@@ -15,7 +15,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
-app.include_router(ui.router)
+app.include_router(ui_router)
 app.include_router(session.router)
 app.include_router(loop.router)
 app.include_router(state.router)
