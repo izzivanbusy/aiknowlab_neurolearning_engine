@@ -7,10 +7,11 @@ from alembic import context
 
 from app.config import settings
 from app.db.base import Base
-from app.db import models  # noqa: F401
+from app.db import models  # noqa: F401 — ensures models are registered
 
 config = context.config
 
+# Use sync psycopg2 URL for alembic migrations
 sync_url = re.sub(r'^postgres(ql)?(\+\w+)?://', 'postgresql://', settings.DATABASE_URL)
 config.set_main_option("sqlalchemy.url", sync_url)
 

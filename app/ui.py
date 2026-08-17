@@ -1,450 +1,679 @@
-"""Serve the learner-facing UI as a single HTML page."""
+"""Serve the Wortschatzmaschine UI as a single HTML page."""
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
 router = APIRouter()
 
-HTML = """<!DOCTYPE html>
+HTML = r"""<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>aiknowlab · Deutsch lernen</title>
+  <title>Wortschatzmaschine · A1</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #161820;
+      --border:    #252836;
+      --text:      #e2e4ef;
+      --muted:     #5a5d74;
+      --accent:    #7c6fff;
+      --accent2:   #34d399;
+      --danger:    #ef4444;
+      --warn:      #f59e0b;
+    }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0f1117;
-      color: #e8eaf0;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
+      justify-content: flex-start;
+      padding: 24px 16px 60px;
     }
 
-    .card {
-      background: #1a1d27;
-      border: 1px solid #2a2d3a;
-      border-radius: 16px;
-      padding: 40px;
+    /* ── Header ── */
+    .header {
       width: 100%;
-      max-width: 620px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    }
-
-    .brand {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      color: #6c63ff;
-      text-transform: uppercase;
-      margin-bottom: 32px;
-    }
-
-    h1 { font-size: 26px; font-weight: 700; line-height: 1.3; }
-    h2 { font-size: 18px; font-weight: 600; color: #a8aab8; margin-bottom: 8px; }
-
-    .subtitle {
-      font-size: 15px;
-      color: #6b6e80;
-      margin-top: 8px;
-      margin-bottom: 32px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #8b8fa8;
-      margin-bottom: 8px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    select, textarea {
-      width: 100%;
-      background: #0f1117;
-      border: 1px solid #2a2d3a;
-      border-radius: 10px;
-      color: #e8eaf0;
-      font-size: 15px;
-      font-family: inherit;
-      padding: 12px 16px;
-      margin-bottom: 20px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    select:focus, textarea:focus { border-color: #6c63ff; }
-    textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
-
-    .btn {
-      display: inline-block;
-      background: #6c63ff;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 13px 28px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      width: 100%;
-    }
-    .btn:hover { background: #7c73ff; }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { background: #2a2d3a; color: #6b6e80; cursor: not-allowed; }
-
-    .btn-secondary {
-      background: #2a2d3a;
-      color: #e8eaf0;
-      margin-top: 12px;
-    }
-    .btn-secondary:hover { background: #3a3d4a; }
-
-    /* Progress bar */
-    .progress-wrap {
-      margin-bottom: 28px;
-    }
-    .progress-label {
+      max-width: 560px;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      font-size: 12px;
-      color: #6b6e80;
-      margin-bottom: 8px;
+      margin-bottom: 24px;
     }
+    .brand {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .word-counter {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Progress ── */
     .progress-bar {
-      height: 4px;
-      background: #2a2d3a;
-      border-radius: 4px;
+      width: 100%;
+      max-width: 560px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 3px;
+      margin-bottom: 28px;
       overflow: hidden;
     }
     .progress-fill {
       height: 100%;
-      background: #6c63ff;
-      border-radius: 4px;
-      transition: width 0.5s ease;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 3px;
+      transition: width 0.6s ease;
     }
 
-    /* Skill badge */
-    .skill-badge {
-      display: inline-block;
-      background: rgba(108,99,255,0.15);
-      border: 1px solid rgba(108,99,255,0.3);
-      color: #9d96ff;
-      font-size: 12px;
-      font-weight: 600;
+    /* ── Stage indicator ── */
+    .stage-row {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+    .stage-dot {
+      flex: 1;
+      height: 3px;
+      border-radius: 3px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .stage-dot.active   { background: var(--accent); }
+    .stage-dot.done     { background: var(--accent2); }
+
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 4px 12px;
-      margin-bottom: 20px;
-      letter-spacing: 0.04em;
+      padding: 36px 32px;
     }
 
-    /* Task prompt */
-    .prompt-box {
-      background: #0f1117;
-      border: 1px solid #2a2d3a;
-      border-radius: 10px;
-      padding: 20px;
-      margin-bottom: 24px;
-      font-size: 15px;
-      line-height: 1.7;
-      color: #c8cad8;
-      white-space: pre-wrap;
+    /* ── Word display (ENCOUNTER) ── */
+    .word-hero {
+      text-align: center;
+      margin-bottom: 28px;
     }
-
-    /* Feedback */
-    .feedback-box {
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 24px;
-      font-size: 15px;
-      line-height: 1.7;
+    .word-de {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 8px;
     }
-    .feedback-positive { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); color: #34d399; }
-    .feedback-neutral  { background: rgba(251,191,36,0.08);  border: 1px solid rgba(251,191,36,0.2);  color: #fbbf24; }
-    .feedback-negative { background: rgba(239,68,68,0.08);   border: 1px solid rgba(239,68,68,0.2);   color: #ef4444; }
-
-    /* Acquisition meter */
-    .meter-wrap {
-      background: #0f1117;
-      border: 1px solid #2a2d3a;
-      border-radius: 10px;
-      padding: 16px 20px;
-      margin-bottom: 20px;
-    }
-    .meter-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #6b6e80;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 10px;
-    }
-    .meter-bar {
-      height: 8px;
-      background: #2a2d3a;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 6px;
-    }
-    .meter-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #6c63ff, #34d399);
-      border-radius: 8px;
-      transition: width 0.8s ease;
-    }
-    .meter-value {
-      font-size: 13px;
-      color: #a8aab8;
-    }
-
-    /* Context tag */
-    .context-tag {
+    .word-type-pill {
       display: inline-block;
       font-size: 11px;
-      color: #6b6e80;
-      border: 1px solid #2a2d3a;
-      border-radius: 6px;
-      padding: 2px 8px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
       margin-bottom: 12px;
     }
+    .word-translation {
+      font-size: 22px;
+      color: var(--accent2);
+      font-weight: 600;
+    }
 
-    .done-icon { font-size: 48px; margin-bottom: 16px; }
-    .hidden { display: none !important; }
+    /* ── Example sentences ── */
+    .examples {
+      margin-top: 24px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+    .example-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .example-item {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #b0b3c8;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .example-item:last-child { border-bottom: none; }
+    .example-item em {
+      color: var(--accent);
+      font-style: normal;
+      font-weight: 600;
+    }
 
-    .spinner {
+    /* ── Prompt (RECOGNIZE / RECALL / PRODUCE) ── */
+    .stage-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .prompt-text {
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .prompt-subtext {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .gapped-sentence {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      font-size: 18px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .blank {
       display: inline-block;
-      width: 18px; height: 18px;
+      min-width: 60px;
+      border-bottom: 2px solid var(--accent);
+      color: transparent;
+    }
+
+    /* ── Input ── */
+    textarea, input[type=text] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 17px;
+      font-family: inherit;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: none;
+    }
+    textarea { min-height: 100px; line-height: 1.5; }
+    textarea:focus, input[type=text]:focus { border-color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      text-align: center;
+    }
+    .btn:hover   { opacity: 0.9; }
+    .btn:active  { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-top: 10px;
+      font-weight: 500;
+    }
+    .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+    /* ── Feedback ── */
+    .feedback-box {
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .fb-good    { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25); color: #4ade80; }
+    .fb-ok      { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #fbbf24; }
+    .fb-wrong   { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #f87171; }
+
+    /* ── Acquisition pill ── */
+    .acq-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .acq-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .acq-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .acq-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 6px;
+      transition: width 0.8s ease;
+    }
+    .acq-pct { font-size: 12px; font-weight: 700; color: var(--accent2); }
+
+    /* ── Start screen ── */
+    .start-title {
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .start-sub {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    .level-badge {
+      display: inline-block;
+      background: rgba(124,111,255,0.12);
+      border: 1px solid rgba(124,111,255,0.3);
+      color: var(--accent);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 12px;
+      margin-bottom: 6px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+    select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      padding: 12px 16px;
+      outline: none;
+    }
+    select:focus { border-color: var(--accent); }
+
+    /* ── Done screen ── */
+    .done-big { font-size: 56px; margin-bottom: 16px; text-align: center; }
+    .done-title { font-size: 26px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+    .done-sub { font-size: 15px; color: var(--muted); text-align: center; margin-bottom: 28px; line-height: 1.6; }
+
+    /* ── Utils ── */
+    .hidden { display: none !important; }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
       border: 2px solid rgba(255,255,255,0.2);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<!-- ── START SCREEN ─────────────────────────────── -->
-<div class="card" id="screen-start">
-  <div class="brand">aiknowlab</div>
-  <h1>Deutsch für das Vorstellungsgespräch</h1>
-  <p class="subtitle">Ein KI-System beobachtet, was du wirklich kannst — und entscheidet, was als nächstes kommt.</p>
+<!-- ═══════════════════ START SCREEN ═══════════════════ -->
+<div id="screen-start">
+  <div class="header">
+    <span class="brand">aiknowlab</span>
+  </div>
+  <div class="card">
+    <div class="level-badge">A1 Wortschatz</div>
+    <h1 class="start-title">Wortschatzmaschine</h1>
+    <p class="start-sub">331 Wörter aus der Goethe-Institut-A1-Liste. Von Null zu B1 — Wort für Wort.</p>
 
-  <label>Muttersprache</label>
-  <select id="l1">
-    <option value="ru">Russisch</option>
-    <option value="en">Englisch</option>
-    <option value="tr">Türkisch</option>
-    <option value="ar">Arabisch</option>
-    <option value="uk">Ukrainisch</option>
-    <option value="es">Spanisch</option>
-    <option value="fr">Französisch</option>
-    <option value="zh">Chinesisch</option>
-  </select>
+    <label>Muttersprache</label>
+    <select id="l1">
+      <option value="en">Englisch</option>
+      <option value="ru">Russisch</option>
+      <option value="tr">Türkisch</option>
+      <option value="ar">Arabisch</option>
+      <option value="uk">Ukrainisch</option>
+      <option value="es">Spanisch</option>
+      <option value="fr">Französisch</option>
+      <option value="zh">Chinesisch</option>
+    </select>
 
-  <label>Dein Deutschniveau</label>
-  <select id="proficiency">
-    <option value="A1">A1 – Anfänger</option>
-    <option value="A2" selected>A2 – Grundkenntnisse</option>
-    <option value="B1">B1 – Mittelstufe</option>
-    <option value="B2">B2 – Fortgeschritten</option>
-  </select>
-
-  <button class="btn" id="btn-start" onclick="startSession()">Jetzt beginnen →</button>
+    <button class="btn" style="margin-top:28px" onclick="startSession()">Jetzt beginnen →</button>
+  </div>
 </div>
 
-<!-- ── TASK SCREEN ──────────────────────────────── -->
-<div class="card hidden" id="screen-task">
-  <div class="brand">aiknowlab</div>
-
-  <div class="progress-wrap">
-    <div class="progress-label">
-      <span id="task-counter">Aufgabe 1</span>
-      <span id="skill-name-label">SK-08 · Sich vorstellen</span>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+<!-- ═══════════════════ LEARNING SCREEN ═══════════════════ -->
+<div id="screen-learn" class="hidden">
+  <div class="header">
+    <span class="brand">aiknowlab</span>
+    <span class="word-counter" id="word-counter">Wort 0 / 331</span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="stage-row" id="stage-row">
+    <div class="stage-dot" id="sd-0"></div>
+    <div class="stage-dot" id="sd-1"></div>
+    <div class="stage-dot" id="sd-2"></div>
+    <div class="stage-dot" id="sd-3"></div>
   </div>
 
-  <div class="skill-badge" id="skill-badge">SK-08 · Sich vorstellen</div>
-  <div class="context-tag" id="context-tag">Situation: Übung</div>
-
-  <div class="prompt-box" id="task-prompt">Lädt…</div>
-
-  <label for="answer">Deine Antwort auf Deutsch</label>
-  <textarea id="answer" placeholder="Schreibe hier auf Deutsch…"></textarea>
-
-  <button class="btn" id="btn-submit" onclick="submitAttempt()">Abschicken</button>
+  <div class="card" id="card-content">
+    <!-- filled by JS -->
+  </div>
 </div>
 
-<!-- ── FEEDBACK SCREEN ─────────────────────────── -->
-<div class="card hidden" id="screen-feedback">
-  <div class="brand">aiknowlab</div>
-
-  <h2>Auswertung</h2>
-
-  <div class="feedback-box" id="feedback-text"></div>
-
-  <div class="meter-wrap">
-    <div class="meter-label">Erwerbswahrscheinlichkeit · Sich vorstellen</div>
-    <div class="meter-bar"><div class="meter-fill" id="acq-fill" style="width:10%"></div></div>
-    <div class="meter-value" id="acq-value">10%</div>
+<!-- ═══════════════════ DONE SCREEN ═══════════════════ -->
+<div id="screen-done" class="hidden">
+  <div class="header"><span class="brand">aiknowlab</span></div>
+  <div class="card">
+    <div class="done-big">🎉</div>
+    <div class="done-title">Alle A1-Wörter gelernt!</div>
+    <div class="done-sub">Du hast alle 331 Wörter der Goethe-Institut-A1-Liste absolviert. Das Engine hat deinen Fortschritt gespeichert.</div>
+    <button class="btn" onclick="localStorage.removeItem('aiknowlab_learner_id'); location.reload()">Neue Sitzung starten</button>
   </div>
-
-  <button class="btn" id="btn-next" onclick="loadNextTask()">Nächste Aufgabe →</button>
-  <button class="btn btn-secondary hidden" id="btn-done-final">Fertig</button>
-</div>
-
-<!-- ── DONE SCREEN ──────────────────────────────── -->
-<div class="card hidden" id="screen-done">
-  <div class="brand">aiknowlab</div>
-  <div class="done-icon">🎯</div>
-  <h1>Gut gemacht!</h1>
-  <p class="subtitle">Du hast alle Aufgaben für <strong>Sich vorstellen</strong> absolviert. Das Engine hat deine Leistung beobachtet und deinen Lernpfad aktualisiert.</p>
-
-  <div class="meter-wrap" style="margin-top:24px">
-    <div class="meter-label">Finale Erwerbswahrscheinlichkeit</div>
-    <div class="meter-bar"><div class="meter-fill" id="final-acq-fill" style="width:10%"></div></div>
-    <div class="meter-value" id="final-acq-value">10%</div>
-  </div>
-
-  <button class="btn" style="margin-top:24px" onclick="location.reload()">Neue Sitzung</button>
 </div>
 
 <script>
-const API = '';  // same origin
-let learnerId = null;
+const API = '';
+const STORAGE_KEY = 'aiknowlab_learner_id';
+let learnerId = localStorage.getItem(STORAGE_KEY) || null;
 let currentItem = null;
-let taskCount = 0;
-let lastAcqP = 0.1;
+let sessionAcq = 0;
 
-const CONTEXT_LABELS = {
-  controlled_exercise: 'Kontrollierte Übung',
-  scenario_guided: 'Geführtes Szenario',
-  scenario_free: 'Freies Szenario',
-  unexpected_transfer: 'Transfer in neuen Kontext',
+const STAGE_LABELS = {
+  vocab_encounter: 'KENNENLERNEN',
+  vocab_recognize: 'ERKENNEN',
+  vocab_recall:    'ABRUFEN',
+  vocab_produce:   'PRODUZIEREN',
+};
+
+const STAGE_HINTS = {
+  vocab_recognize: 'Ergänze das fehlende Wort in der Lücke.',
+  vocab_recall:    'Schreibe das deutsche Wort.',
+  vocab_produce:   'Schreibe einen eigenen Satz mit diesem Wort.',
 };
 
 function show(id) {
-  ['screen-start','screen-task','screen-feedback','screen-done'].forEach(s => {
-    document.getElementById(s).classList.add('hidden');
-  });
+  ['screen-start','screen-learn','screen-done'].forEach(s =>
+    document.getElementById(s).classList.add('hidden')
+  );
   document.getElementById(id).classList.remove('hidden');
 }
 
+function updateStageDots(stageIndex) {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`sd-${i}`);
+    dot.className = 'stage-dot';
+    if (i < stageIndex) dot.classList.add('done');
+    else if (i === stageIndex) dot.classList.add('active');
+  }
+}
+
+// ── Auto-resume or show start screen ───────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (learnerId) {
+    // Returning user — go straight to learning
+    show('screen-learn');
+    loadNextItem();
+  }
+  // else: show start screen (default)
+});
+
+// ── Session start ──────────────────────────────────────────────────────────
 async function startSession() {
-  const btn = document.getElementById('btn-start');
+  const btn = event.target;
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Verbinde…';
-
   const l1 = document.getElementById('l1').value;
-  const proficiency = document.getElementById('proficiency').value;
-
   try {
     const res = await fetch(`${API}/session/start`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ l1_language: l1, proficiency }),
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ l1_language: l1, proficiency: 'A1' }),
     });
     const data = await res.json();
     learnerId = data.id;
-    await loadNextTask();
-  } catch (e) {
+    localStorage.setItem(STORAGE_KEY, learnerId);
+    show('screen-learn');
+    await loadNextItem();
+  } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'Fehler – bitte erneut versuchen';
+    btn.textContent = 'Fehler – erneut versuchen';
   }
 }
 
-async function loadNextTask() {
-  show('screen-task');
-  document.getElementById('task-prompt').textContent = 'Lädt…';
-  document.getElementById('answer').value = '';
-  document.getElementById('btn-submit').disabled = false;
-  document.getElementById('btn-submit').textContent = 'Abschicken';
+// ── Load next item ─────────────────────────────────────────────────────────
+async function loadNextItem() {
+  const card = document.getElementById('card-content');
+  card.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><span class="spinner"></span> Lädt…</div>';
 
   try {
-    const res = await fetch(`${API}/loop/${learnerId}/next`);
-    if (res.status === 404) { showDone(); return; }
-    const item = await res.json();
-    currentItem = item;
-    taskCount++;
-
-    document.getElementById('task-prompt').textContent = item.prompt_for_learner;
-    document.getElementById('skill-badge').textContent = `${item.skill_code} · ${item.skill_name}`;
-    document.getElementById('skill-name-label').textContent = `${item.skill_code} · ${item.skill_name}`;
-    document.getElementById('task-counter').textContent = `Aufgabe ${taskCount}`;
-    document.getElementById('context-tag').textContent =
-      'Situation: ' + (CONTEXT_LABELS[item.context_label] || item.context_label);
-
-    // Progress: transfer_distance 0–3 mapped to 5 tasks
-    const pct = Math.min(100, (item.transfer_distance / 3) * 100);
-    document.getElementById('progress-fill').style.width = pct + '%';
-  } catch (e) {
-    document.getElementById('task-prompt').textContent = 'Fehler beim Laden. Bitte neu laden.';
+    const res = await fetch(`${API}/vocab/${learnerId}/next`);
+    if (res.status === 404) { show('screen-done'); return; }
+    currentItem = await res.json();
+    renderItem(currentItem);
+  } catch(e) {
+    card.innerHTML = '<p style="color:var(--danger);text-align:center">Ladefehler. Bitte neu laden.</p>';
   }
 }
 
-async function submitAttempt() {
-  const answer = document.getElementById('answer').value.trim();
-  if (!answer) { document.getElementById('answer').focus(); return; }
+// ── Render item ────────────────────────────────────────────────────────────
+function renderItem(item) {
+  const stage = item.stage;
+  updateStageDots(item.stage_index);
 
-  const btn = document.getElementById('btn-submit');
+  // Update counters
+  document.getElementById('word-counter').textContent = `Wort ${item.words_seen} / ${item.words_total}`;
+  const pct = Math.min(100, (item.words_seen / item.words_total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  const card = document.getElementById('card-content');
+
+  if (stage === 'vocab_encounter') {
+    renderEncounter(item, card);
+  } else if (stage === 'vocab_recognize') {
+    renderRecognize(item, card);
+  } else if (stage === 'vocab_recall') {
+    renderRecall(item, card);
+  } else if (stage === 'vocab_produce') {
+    renderProduce(item, card);
+  }
+}
+
+// ── ENCOUNTER ──────────────────────────────────────────────────────────────
+function renderEncounter(item, card) {
+  const examples = (item.examples || []).map(ex => {
+    // highlight the target word in the example
+    const re = new RegExp(`\\b(${escapeRe(item.word)}\\w*)`, 'gi');
+    const hl = ex.replace(re, '<em>$1</em>');
+    return `<div class="example-item">${hl}</div>`;
+  }).join('');
+
+  card.innerHTML = `
+    <div class="word-hero">
+      <div class="word-de">${item.word}</div>
+      <div class="word-type-pill">${wordTypeLabel(item.word_type)}</div>
+      <div class="word-translation">${item.translation_en}</div>
+    </div>
+    ${examples ? `<div class="examples"><div class="example-label">Beispiel</div>${examples}</div>` : ''}
+    <button class="btn" style="margin-top:28px" onclick="markSeen()">Verstanden →</button>
+  `;
+}
+
+// ── RECOGNIZE ──────────────────────────────────────────────────────────────
+function renderRecognize(item, card) {
+  const sentence = item.gapped_sentence || item.prompt_for_learner;
+  const display = sentence.replace(/___/g, '<span class="blank">___</span>');
+
+  card.innerHTML = `
+    <div class="stage-label">${STAGE_LABELS.vocab_recognize}</div>
+    <div class="prompt-text">Ergänze die Lücke</div>
+    <div class="prompt-subtext">Welches Wort fehlt?</div>
+    <div class="gapped-sentence">${display}</div>
+    <input type="text" id="answer-input" placeholder="Wort eingeben…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      onkeydown="if(event.key==='Enter') submitCheck()" />
+    <button class="btn" id="btn-check" onclick="submitCheck()">Prüfen →</button>
+    <button class="btn btn-ghost" onclick="skipToNext()">Überspringen</button>
+  `;
+  setTimeout(() => document.getElementById('answer-input')?.focus(), 50);
+}
+
+// ── RECALL ─────────────────────────────────────────────────────────────────
+function renderRecall(item, card) {
+  card.innerHTML = `
+    <div class="stage-label">${STAGE_LABELS.vocab_recall}</div>
+    <div class="prompt-text">${item.prompt_for_learner}</div>
+    <div class="prompt-subtext">Schreibe das deutsche Wort.</div>
+    <input type="text" id="answer-input" placeholder="Auf Deutsch…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      onkeydown="if(event.key==='Enter') submitCheck()" />
+    <button class="btn" id="btn-check" onclick="submitCheck()">Prüfen →</button>
+    <button class="btn btn-ghost" onclick="skipToNext()">Überspringen</button>
+  `;
+  setTimeout(() => document.getElementById('answer-input')?.focus(), 50);
+}
+
+// ── PRODUCE ────────────────────────────────────────────────────────────────
+function renderProduce(item, card) {
+  card.innerHTML = `
+    <div class="stage-label">${STAGE_LABELS.vocab_produce}</div>
+    <div class="prompt-text">Schreibe einen eigenen Satz</div>
+    <div class="prompt-subtext">Benutze das Wort <strong style="color:var(--accent)">${item.word}</strong> auf Deutsch.</div>
+    <textarea id="answer-input" placeholder="Dein Satz auf Deutsch…" rows="3"></textarea>
+    <button class="btn" id="btn-check" onclick="submitCheck()">Abschicken →</button>
+    <button class="btn btn-ghost" onclick="skipToNext()">Überspringen</button>
+  `;
+  setTimeout(() => document.getElementById('answer-input')?.focus(), 50);
+}
+
+// ── Mark ENCOUNTER as seen ─────────────────────────────────────────────────
+async function markSeen() {
+  const btn = document.querySelector('#card-content .btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  try {
+    await fetch(`${API}/vocab/seen`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ learner_id: learnerId, item_id: currentItem.item_id }),
+    });
+    await loadNextItem();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Verstanden →'; }
+  }
+}
+
+// ── Submit RECOGNIZE / RECALL / PRODUCE ────────────────────────────────────
+async function submitCheck() {
+  const input = document.getElementById('answer-input');
+  if (!input) return;
+  const answer = input.value.trim();
+  if (!answer) { input.focus(); return; }
+
+  const btn = document.getElementById('btn-check');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>KI bewertet…';
 
   try {
-    const res = await fetch(`${API}/loop/attempt`, {
+    const res = await fetch(`${API}/vocab/check`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         learner_id: learnerId,
         item_id: currentItem.item_id,
-        stage: currentItem.context_label === 'controlled_exercise' ? 'retrieve' : 'generate',
         input_text: answer,
       }),
     });
-
     const data = await res.json();
-    showFeedback(data);
-  } catch (e) {
+    renderFeedback(data, answer);
+  } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'Fehler – bitte erneut versuchen';
+    btn.textContent = 'Fehler – erneut versuchen';
   }
 }
 
-function showFeedback(data) {
-  show('screen-feedback');
+// ── Render feedback ────────────────────────────────────────────────────────
+function renderFeedback(data, answer) {
+  const pct = Math.round(data.acquisition_probability * 100);
+  sessionAcq = data.acquisition_probability;
 
-  // Feedback text
-  const feedbackEl = document.getElementById('feedback-text');
-  feedbackEl.textContent = data.feedback;
+  const fbClass = data.correct ? 'fb-good' : (data.performance_score >= 0.4 ? 'fb-ok' : 'fb-wrong');
 
-  const score = data.signals?.performance_score ?? 0;
-  feedbackEl.className = 'feedback-box';
-  if (score >= 0.75) feedbackEl.classList.add('feedback-positive');
-  else if (score >= 0.45) feedbackEl.classList.add('feedback-neutral');
-  else feedbackEl.classList.add('feedback-negative');
-
-  // Acquisition probability
-  if (data.skill_states_updated && data.skill_states_updated.length > 0) {
-    lastAcqP = data.skill_states_updated[0].acquisition_probability;
-  }
-  const pct = Math.round(lastAcqP * 100);
-  document.getElementById('acq-fill').style.width = pct + '%';
-  document.getElementById('acq-value').textContent = `${pct}% Erwerbswahrscheinlichkeit`;
+  const card = document.getElementById('card-content');
+  card.innerHTML = `
+    <div class="stage-label">${STAGE_LABELS[currentItem.stage] || ''}</div>
+    <div class="feedback-box ${fbClass}">${escapeHtml(data.feedback)}</div>
+    <div class="acq-row">
+      <span class="acq-label">Wort beherrscht</span>
+      <div class="acq-bar-wrap">
+        <div class="acq-bar-fill" id="acq-fill" style="width:0%"></div>
+      </div>
+      <span class="acq-pct">${pct}%</span>
+    </div>
+    <button class="btn" onclick="loadNextItem()">Weiter →</button>
+  `;
+  // Animate bar
+  setTimeout(() => {
+    const fill = document.getElementById('acq-fill');
+    if (fill) fill.style.width = pct + '%';
+  }, 50);
 }
 
-function showDone() {
-  show('screen-done');
-  const pct = Math.round(lastAcqP * 100);
-  document.getElementById('final-acq-fill').style.width = pct + '%';
-  document.getElementById('final-acq-value').textContent = `${pct}% Erwerbswahrscheinlichkeit`;
+// ── Skip ──────────────────────────────────────────────────────────────────
+async function skipToNext() {
+  await loadNextItem();
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function wordTypeLabel(t) {
+  const map = {
+    noun: 'Substantiv',
+    verb: 'Verb',
+    adj: 'Adjektiv / Adverb',
+    adv: 'Adverb',
+    prep: 'Präposition',
+    conj: 'Konjunktion',
+    pron: 'Pronomen',
+    num: 'Numerale',
+    art: 'Artikel',
+    part: 'Partikel',
+    interj: 'Interjektion',
+  };
+  return map[t] || t;
 }
 </script>
 </body>
